@@ -1,0 +1,21 @@
+{
+    "generate": {
+        "template": "qt_prop_protsect.py.jinja",
+        "destpath": "../generated",
+        "filename": "Person.py",
+        "protsect": true
+    },
+    "context": {
+        "class_name": "Person",
+        "props": [
+            {"name": "name", "type": "str"},
+            {"name": "surname", "type": "str"},
+            {"name": "age", "type": "int"}
+        ],
+        "methods": [
+            {"name": "dumps", "args": ["one", "two"]},
+            {"name": "isAdult", "args": []},
+            {"name": "isCorrect", "args": []}
+        ]
+    }
+}

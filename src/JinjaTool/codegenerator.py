@@ -1,10 +1,10 @@
-import os
-from dataclasses import dataclass
-from pathlib import Path
 import json
-from typing import Union, Sequence
+import os
 import re
+from dataclasses import dataclass
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
+from pathlib import Path
+from typing import Dict, List, Tuple, Union, Sequence
 
 ####################################################
 # Funkcje filtrów wykorzystywane w szablonach jinja.
@@ -15,7 +15,7 @@ def quotation(input):
 def exttrim(input):
     return input.strip()
 
-def getsect(sect_dict, name, comment_tag):
+def getsect(sect_info, name):
     ''' 
     Zwraca sformatowaną zawartość sekcji zabezpieczonej, jeżeli
     istnieje sekcja o wskazanej nazwie. W przeciwnym razie
@@ -29,15 +29,31 @@ def getsect(sect_dict, name, comment_tag):
             
     Argumenty:
     ----------
-    * sect_dict - słownik wiążący nazwy sekcji z wystąpieniami klas ProtSect
+    * sect_dict - krotka zawierająca informacje w formacie jak w CodeGenerator.def_comment_tags 
+        oraz słownik wiążący nazwy sekcji z wystąpieniami klas ProtSect
     * name - nazwa sekcji
     * comment_tag - znak wiodący komentarza; używany w przypadku generowania
                     domyślnej pustej sekcji.
     '''
-    if name in sect_dict:
+    if not sect_info:
+        return None
+    
+    sect_dict = None
+    if len(sect_info) > 1:
+        sect_dict = sect_info[1]
+    
+    if sect_dict and name in sect_dict:
         return sect_dict[name].formattedSect()
-    return f'''{comment_tag} {CodeGenerator.prot_sec_open_tag} {name} {CodeGenerator.prot_sec_close_tag}
-{comment_tag} {CodeGenerator.prot_sec_open_tag} {CodeGenerator.prot_sec_close_tag}'''
+    
+    sect_tag = sect_info[0]
+    
+    comment_tag_open = sect_tag[1]
+    comment_tag_close = ''
+    if len(sect_tag) == 3:
+        comment_tag_close = ' ' + sect_tag[2]
+        
+    return f'{comment_tag_open} {CodeGenerator.prot_sec_open_tag} {name} {CodeGenerator.prot_sec_close_tag}{comment_tag_close}\n' \
+           f'{comment_tag_open} {CodeGenerator.prot_sec_open_tag} {CodeGenerator.prot_sec_close_tag}{comment_tag_close}'
 
 def check(input):
     '''
@@ -97,14 +113,14 @@ class CodeGenerator(object):
         ('.ts', '//'),
         ('.sql', '--'),
         ('.css', '/*'),
-        ('.html', '<!--'),
-        ('.xml', '<!--'),
+        ('.html', '<!--', '-->'),
+        ('.xml', '<!--', '-->'),
         ('.md', '[//]:# ('),
         ('.md', '[//]: # ('),
         ('.ini', ';'),  
         ('.cfg', '//'),
         ('.jinja', '{#'),
-        ('.ui', '<!--'),
+        ('.ui', '<!--', '-->'),
     ]
     
     def_prot_sec_open_tag = '>>>'
@@ -141,13 +157,32 @@ class CodeGenerator(object):
         self.__env.tests['isinstance'] = isinstance
 
         
-    def __parse_protected_sections(self, filepath: Path) -> ProtSect:
-        if not filepath.exists():
-            return None
+    def __parse_protected_sections(self, filepath: Path) -> Tuple[Tuple[str, str, str], Dict[str, ProtSect]]:
+        '''
+        Zwraca krotkę zawierającą ostatni zdefiniowany w tablicy __comment_tags zestaw informacji 
+        o wiodących łańcuchac komentarzy oraz słownik wiążący nazwy odnalezionych sekcji z obiektami
+        klasy ProtSect.
         
+        W przypadku używania metod add_comment_tags należy pamiętać, że użyty zostanie ostatni
+        dodany łańcuch wiodący komentarza dla danego rozszerzenia pliku.
+
+        Arguments:
+            filepath (Path): ścieżka do analizowanego pliku
+
+        Returns:
+            Tuple[Tuple[str, str, str], Dict[str, ProtSect]]: krotka zawierająca krotkę z rozszerzeniem
+                pliku, łańcuchem otwierającym komentarz oraz łańcuchem zamykającym komentarz (jeżeli
+                jest wymagany) oraz słownik  wiążący nazwy odnalezionych sekcji z obiektami klasy ProtSect.
+        '''
         ext = filepath.suffix
         tags = [t for t in self.__comment_tags if t[0] == ext]
-                
+        
+        if not filepath.exists():
+            if tags:
+                return tags[-1],
+            else:
+                return
+        
         if not tags:
             return
             
@@ -156,7 +191,7 @@ class CodeGenerator(object):
         
         pattern = r'\s*{0}' + rf"\s*{self.prot_sec_open_tag}\s*(?P<name>.*?)\s*{self.prot_sec_close_tag}.*"
                     
-        res: dict[str, ProtSect] = dict()
+        res: Dict[str, ProtSect] = dict()
                     
         for t in tags:
             pattern = pattern.format(t[1])
@@ -199,7 +234,7 @@ class CodeGenerator(object):
                     opened_section_name = section_name
                     section_nline_start = i
                         
-        return res        
+        return tags[-1], res
 
 
     @classmethod
@@ -266,7 +301,7 @@ class CodeGenerator(object):
         cls.prot_sec_close_tag = cls.def_prot_sec_close_tag
 
         
-    def add_comment_tags(self, tags: list[tuple[str, str]]):
+    def add_comment_tags(self, tags: List[Tuple[str, str] | Tuple[str, str, str]]):
         
         def checkExt(tag: tuple[str, str]):
             if not tag[0].startswith('.'):
@@ -278,9 +313,11 @@ class CodeGenerator(object):
         self.__comment_tags += tags
 
         
-    def add_comment_tag(self, ext: str, tag: str):
-        self.add_comment_tags([(ext, tag)])    
-        
+    def add_comment_tag(self, ext: str, tag_open: str, tag_close: str = None):
+        if tag_close is None:
+            self.add_comment_tags([(ext, tag_open)])    
+        else:
+            self.add_comment_tags([(ext, tag_open, tag_close)])    
     
     def generate(self, 
                  template: str, 

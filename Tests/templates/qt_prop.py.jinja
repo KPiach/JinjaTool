@@ -1,0 +1,67 @@
+{# prop_template.jinja -#}
+{#
+Wzorzec generuje klasę o nazwie class_name dziedziczącą z klasy QObject
+wraz z właściwościami Qt przekazanymi w tablicy props. Generowana jest
+również funkcja __init()__.
+
+Przykładowy kontekst:
+{
+    "class_name": "User",
+    "props": [
+        {"name": "name", "type": "str"},
+        {"name": "age", "type": "int", "default": "18"}
+    ]
+}
+
+class_name - nazwa klasy
+props - tablica z definicją właściwości
+name - nazwa właściwości; w oparciu o nią wygenerowane zostaną:
+    self.__name - zmienna prywatna
+    getName(self) -> type - getter
+    setName(self, value: type) - setter
+    name_changed - sygnał emitowany w momencie zmiany właściwości
+    name - Property Qt
+type - typ właściwości
+default [opcjonalna] - wartość domyślna właściwości 
+-#}
+# Ten plik został wygenerowany automatycznie.
+# Nie należy go edytować. Wszelkie zmiany 
+# poza sekcjami zabezpieczonymi zostaną
+# nadpisane w przypadku powtórnej generacji.
+
+from PySide6.QtCore import QObject, Property, Signal
+
+class {{ class_name }}(QObject):
+    def __init__(self):
+        super().__init__()
+{%- for prop in props %}
+    {%- set capname =  prop.name|capitalize() %}
+    {%- if prop.default is defined %}
+        self.__{{ prop.name }} = {{ prop.default }}
+    {%- else %}
+        self.__{{ prop.name }} = {{ prop.type }}()
+    {%- endif %}
+{%- endfor %}
+
+{%- for prop in props %}
+    {% set capname =  prop.name|capitalize() %}
+    # Właściwość {{ prop.name }}    
+    def get{{ capname }}(self) -> {{ prop.type }}:
+        return self.__{{ prop.name }}
+
+    def set{{ capname }}(self, value: {{ prop.type }}):
+        if self.__{{ prop.name }} != value:
+            self.__{{ prop.name }} = value
+            self.{{ prop.name }}_changed.emit(value)
+
+    {{ prop.name }}_changed = Signal({{ prop.type }})
+
+    {{ prop.name }} = Property({{ prop.type }}, get{{ capname }}, set{{ capname }}, notify={{ prop.name }}_changed)
+{%- endfor %}
+
+{%- for method in methods %}
+
+    # Metoda {{ method.name }}
+    def {{ method.name }}({{ (['self'] + method.args[:])|join(', ') }}):
+        pass
+{%- endfor -%}
