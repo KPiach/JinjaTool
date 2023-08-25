@@ -11,7 +11,32 @@
     "Tests": {
       "name": "Tests",
       "isOrdered": true,
-      "folders": {},
+      "folders": {
+        "generated": {
+          "name": "generated",
+          "isOrdered": true,
+          "folders": {},
+          "files": {}
+        },
+        "pattern": {
+          "name": "pattern",
+          "isOrdered": true,
+          "folders": {},
+          "files": {}
+        },
+        "templates": {
+          "name": "templates",
+          "isOrdered": true,
+          "folders": {},
+          "files": {}
+        },
+        "__pycache__": {
+          "name": "__pycache__",
+          "isOrdered": true,
+          "folders": {},
+          "files": {}
+        }
+      },
       "files": {}
     }
   },

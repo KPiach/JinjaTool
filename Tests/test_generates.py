@@ -32,7 +32,7 @@ def test_001_generate():
     
     # Sprawdzam zgodność wygenerowanego pliku z wzorcem
     compare_files(dest_file, pattern_dir.joinpath('qt_prop.py'))    
-
+    
 
 def test_002_generate_from_json():
     dest_file = Path(CURRENT_DIRECTORY.joinpath('generated', 'Person.py'))
