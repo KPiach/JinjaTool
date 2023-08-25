@@ -36,8 +36,29 @@ CURRENT_DIRECTORY = Path(__file__).resolve().parent
 generator = CodeGenerator(CURRENT_DIRECTORY.joinpath('templates'))
 ```
 
-
 Podana, jako parametr ścieżka dostępu jest ustawiana jako ścieżka wyszukiwania w \*jinja2.FileSystemLoader\*. Ta sama ścieżka jest używana przez JinjaTool do odnajdowania plików definicji.
+
+Teraz możliwe jest wygenerowanie pliku na podstawie wskazanego szablonu oraz kontekstu:
+
+```python
+ctx = \
+{        
+    "class_name": "User",        
+    "props": [
+        {"name": "nick_name", "type": "str"},
+        {"name": "age", "type": "int", "default": "18"}
+    ],
+    "methods": [            
+        {"name": "is_registered", "args": []}           
+    ]
+}
+
+generator.generate('qt_prop.py.jinja', '../generated', **ctx)
+```
+
+Pierwszy parametr \*template\* jest obowiązkowy i wskazuje na wzorzec jinjla. Drugi parametr \*destpath\* jest opcjonalny i wskazuje na ścieżkę docelową dla wygenerowanego pliku, która może być względna lub bezwzględna. Jeżeli nie jest podana, to plik wynikoway zostanie zapisany w katalogu wzorca. Możliwe jest również użycie opcjonalnego parametru \*filename\*, aby jawnie określić nazwę pliku wynikowego. W powyższym przykładzie zostanie ona określona na podstawie nazwy wzorca, poprzez odrzucenie rozszerzenia \*.jinja\*: \*qt\_prop.py\*.
+
+Efekt użycia powyższego kodu można sprawdzić w [qt_prop.py](Tests/generated/qt_prop.py)
 
 ## Sekcje zabezpieczone
 
@@ -66,4 +87,4 @@ Zwraca sformatowaną zawartość [sekcji zabezpieczonej](#sekcje-zabezpieczone),
 
 ### isinstance(\_\_obj, \_\_class\_or\_tuple)
 
-Metoda isinstance wbudowana w Python.
+Metoda *isinstance* wbudowana w Python.
